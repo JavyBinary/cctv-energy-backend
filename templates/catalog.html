@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="catalog-screen-container">
+  <div class="catalog-header-block">
+    <h1 class="catalog-title">Каталог камер</h1>
+    
+    <form method="GET" action="/catalog" class="catalog-form">
+      <div class="filter-wrapper">
+        <label class="filter-label" for="power-slider">Мощность до: <span id="filter-power-value">{{ "%.1f"|format(search_power) }}</span> Вт</label>
+        
+        <input 
+          type="range" 
+          id="power-slider"
+          name="search_power" 
+          min="0.0" 
+          max="12.0" 
+          step="0.5" 
+          value="{{ search_power }}" 
+          class="native-oval-slider"
+          style="--ratio: {{ [0, [1, ((search_power - 0.0) / 12.0)]|min]|max|round(4) }};"
+        >
+      </div>
+      <button type="submit" class="btn-find">Найти</button>
+    </form>
+  </div>
+
+  <div class="catalog-cards-grid">
+    {% for cam in cameras %}
+    <div class="catalog-card">
+      <a href="/camera/{{ cam.id }}" class="card-link-wrapper">
+        <div class="card-image-box">
+          <img src="{{ cam.photo_url }}" class="card-img" alt="{{ cam.model_name }}">
+        </div>
+        <div class="card-model-name">{{ cam.model_name }}</div>
+      </a>
+      
+      <div class="card-specs-left">
+        <span class="card-power">{{ "%.1f"|format(cam.power_consumption_watts) }} Вт</span>
+        <span class="card-res">{{ cam.resolution }}</span>
+        <div class="card-badge">{{ cam.housing_type }}</div>
+      </div>
+
+      <div class="card-footer-like">
+        <svg class="card-heart-icon" viewBox="0 0 24 24" fill="#D71820">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span class="like-counter">{{ cam.likes_count }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+  (function() {
+    const powerSlider = document.getElementById('power-slider');
+    const powerValueDisplay = document.getElementById('filter-power-value');
+
+    function updateSlider() {
+      if (!powerSlider) return;
+      const min = parseFloat(powerSlider.min) || 0;
+      const max = parseFloat(powerSlider.max) || 12;
+      const val = parseFloat(powerSlider.value) || 0;
+      const ratio = Math.min(1, Math.max(0, (val - min) / (max - min)));
+      
+      const width = powerSlider.offsetWidth;
+      if (width > 24) {
+        const thumbCenterPx = 12 + ratio * (width - 24);
+        powerSlider.style.setProperty('--split', thumbCenterPx + 'px');
+      }
+      powerSlider.style.setProperty('--ratio', ratio);
+
+      if (powerValueDisplay) {
+        powerValueDisplay.textContent = val.toFixed(1);
+      }
+    }
+
+    if (powerSlider) {
+      powerSlider.addEventListener('input', updateSlider);
+      powerSlider.addEventListener('change', updateSlider);
+      window.addEventListener('resize', updateSlider);
+      updateSlider();
+      requestAnimationFrame(updateSlider);
+    }
+  })();
+</script>
+{% endblock %}
