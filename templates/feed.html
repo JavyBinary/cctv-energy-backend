@@ -1,38 +1,48 @@
 {% extends "base.html" %}
 
+{% block title %}{{ camera.model_name }} - Лента камер{% endblock %}
+{% block viewport_class %}feed-viewport{% endblock %}
+
 {% block content %}
-<div class="screencamerafeed-1">
-  <video class="feed-media" autoplay loop muted playsinline>
-    <source src="{{ camera.video_url }}" type="video/mp4">
-  </video>
+<div class="feed-video-container">
+    <video autoplay loop muted playsinline class="feed-video-player">
+        <source src="{{ camera.video_url }}" type="video/mp4">
+        Ваш браузер не поддерживает воспроизведение видео.
+    </video>
+    <div class="feed-gradient-overlay"></div>
+</div>
 
-  <div class="camerafeedinfoblock-3">
-    <p class="feed-title">{{ camera.model_name }}</p>
-    <div class="camerafeedsummaryrow-5">
-      <p class="feed-desc">{{ camera.description }}</p>
-      <span class="feed-more">Ещё</span>
+<section class="feed-info-block">
+    <h2 class="feed-model-title">{{ camera.model_name }}</h2>
+    <input type="checkbox" id="feed-expand-toggle" class="feed-expand-checkbox">
+    <div class="feed-summary-row">
+        <span class="feed-summary-text">{{ camera.summary }}</span>
+        <label for="feed-expand-toggle" class="feed-expand-btn">
+            <span class="feed-expand-more">Ещё</span>
+            <span class="feed-expand-less">Свернуть</span>
+        </label>
     </div>
-  </div>
+</section>
 
-  <div class="feed-actions-column">
-    <div class="camerafeedlikeaction-9">
-      <svg class="feed-heart-icon" viewBox="0 0 24 24" fill="#FFFFFF">
-        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-      </svg>
-      <span>{{ camera.likes_count }}</span>
+<aside class="feed-side-actions">
+    <div class="feed-like-action">
+        <div class="feed-like-icon">
+            <svg width="44" height="40" viewBox="0 0 14 12" fill="#FFFFFF" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1.56479 2.39991C1.19694 2.93478 1.00001 3.56865 1 4.21779C1 5.55947 1.87507 6.55114 2.75013 7.42615L5.96338 10.5365C6.07366 10.66 6.20894 10.7585 6.36025 10.8257C6.51155 10.8928 6.67542 10.927 6.84095 10.926C7.00649 10.9249 7.1699 10.8887 7.32035 10.8196C7.47079 10.7505 7.60481 10.6503 7.71352 10.5254L10.9174 7.42615C11.7925 6.55114 12.6676 5.55363 12.6676 4.21779C12.6707 3.56722 12.4755 2.93115 12.1082 2.39421C11.7408 1.85728 11.2186 1.44496 10.6111 1.21212C10.0036 0.979291 9.33953 0.936993 8.70738 1.09086C8.07522 1.24472 7.50492 1.58745 7.07238 2.07343C7.04182 2.10611 7.00487 2.13216 6.96383 2.14997C6.92279 2.16778 6.87852 2.17697 6.83378 2.17697C6.78904 2.17697 6.74478 2.16778 6.70373 2.14997C6.66269 2.13216 6.62574 2.10611 6.59518 2.07343C6.16128 1.59059 5.59111 1.25072 4.95998 1.0987C4.32885 0.946681 3.66645 0.989671 3.06026 1.22199C2.45408 1.45431 1.93263 1.86503 1.56479 2.39991Z" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" fill="#FFFFFF"/>
+            </svg>
+        </div>
+        <div class="feed-likes-counter">{{ camera.likes|length }}</div>
     </div>
 
-    <a href="/camera/{{ camera.id }}?next=true" class="camerafeednextaction-12">
-      <svg class="feed-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-        <polyline points="12 5 19 12 12 19"></polyline>
-      </svg>
+    <a href="/cameras/feed/{{ camera.id }}?next=true" class="feed-next-button" title="Следующая модель камеры">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
     </a>
 
-    <div class="feed-badges-group">
-      <div class="badge-pill">{{ camera.power_consumption_watts }} Вт</div>
-      <div class="badge-pill">{{ camera.resolution }}</div>
+    <div class="feed-metrics-badges">
+        <div class="feed-metric-badge">{{ camera.power }} Вт</div>
+        <div class="feed-metric-badge">{{ camera.resolution }}</div>
     </div>
-  </div>
-</div>
+</aside>
 {% endblock %}

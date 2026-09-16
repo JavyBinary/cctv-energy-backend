@@ -1,12 +1,17 @@
+from pathlib import Path
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
-import uvicorn
-from api.handlers import router
 
-app = FastAPI(title="CCTV Energy App")
+from api.handlers import router as cameras_router
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-app.include_router(router)
+BASE_DIR = Path(__file__).resolve().parent
 
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+app = FastAPI(title="Система видеонаблюдения - Расчет энергопотребления")
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+app.include_router(cameras_router)
+
+
+@app.get("/")
+def read_root():
+    return RedirectResponse(url="/cameras")
