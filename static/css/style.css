@@ -324,6 +324,47 @@ body {
     color: #000000;
 }
 
+.camera-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+}
+
+.camera-card-delete-form {
+    width: 100%;
+    margin-top: 4px;
+}
+
+.camera-card-delete-btn {
+    width: 100%;
+    height: 30px;
+    border-radius: 15px;
+    background: #ffffff;
+    color: #D71820;
+    border: 1.5px solid #D71820;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.camera-card-delete-btn:hover {
+    background: #D71820;
+    color: #ffffff;
+}
+
+.camera-card-delete-btn:active {
+    transform: scale(0.96);
+}
+
 .create-header {
     width: 390px;
     padding: 24px 16px 12px 16px;
@@ -368,25 +409,33 @@ body {
     gap: 16px;
 }
 
+.create-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
 .create-media-row {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
 }
 
 .create-media-slot {
-    flex: 1;
-    height: 80px;
+    width: 100%;
+    height: 64px;
     border-radius: 12px;
     border: 1px solid #000000;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     background: #ffffff;
     cursor: pointer;
+    box-sizing: border-box;
     transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -396,7 +445,22 @@ body {
 }
 
 .create-media-slot:active {
-    transform: scale(0.97);
+    transform: scale(0.98);
+}
+
+.create-media-slot-static {
+    cursor: default;
+    border: 1px dashed #6B7280;
+    background: #f9f9f9;
+}
+
+.create-media-slot-static:hover {
+    border-color: #6B7280;
+    box-shadow: none;
+}
+
+.create-media-slot-static:active {
+    transform: none;
 }
 
 .create-media-file-input {
@@ -462,6 +526,30 @@ body {
     color: #000000;
     font-size: 16px;
     font-weight: 700;
+}
+
+.create-submit-btn {
+    width: 100%;
+    height: 48px;
+    border-radius: 24px;
+    background: #D71820;
+    color: #ffffff;
+    border: none;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 4px;
+    box-shadow: 0 4px 12px rgba(215, 24, 32, 0.25);
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.create-submit-btn:hover {
+    background: #b5141b;
+}
+
+.create-submit-btn:active {
+    transform: scale(0.98);
 }
 
 .feed-video-container {

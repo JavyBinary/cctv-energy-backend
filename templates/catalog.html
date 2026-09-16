@@ -6,9 +6,10 @@
 <header class="catalog-header">
     <h1 class="catalog-title">Каталог камер</h1>
     <div class="catalog-filter-controls">
-        {% set current_num = power_max if power_max is not none else 15.0 %}
+        {% set max_limit = scale_max if scale_max is defined and scale_max is not none else 15.0 %}
+        {% set current_num = power_max if power_max is not none else max_limit %}
         {% set current_val = '%.1f'|format(current_num) %}
-        {% set current_pct = (current_num / 15.0 * 100) | round(1) %}
+        {% set current_pct = (current_num / max_limit * 100) | round(1) %}
         <label for="power_max" class="catalog-filter-label">
             Мощность до: <output id="power_val" for="power_max">{{ current_val }}</output> Вт
         </label>
@@ -18,12 +19,12 @@
                        name="power_max" 
                        id="power_max" 
                        min="0" 
-                       max="15" 
+                       max="{{ max_limit }}" 
                        step="0.1" 
                        value="{{ current_num }}" 
                        style="--progress: {{ current_pct }}%;" 
                        class="catalog-range-slider"
-                       oninput="power_val.value = Number(this.value).toFixed(1); this.style.setProperty('--progress', (this.value / 15 * 100) + '%')">
+                       oninput="power_val.value = Number(this.value).toFixed(1); this.style.setProperty('--progress', (this.value / {{ max_limit }} * 100) + '%')">
             </div>
             <button type="submit" class="catalog-search-button">Найти</button>
         </form>
@@ -32,21 +33,26 @@
 
 <main class="catalog-grid-scroll">
     {% for camera in cameras %}
-    <a href="/cameras/feed/{{ camera.id }}" class="camera-card">
-        <img src="{{ camera.image_url }}" alt="{{ camera.model_name }}" class="camera-thumbnail" loading="lazy">
-        <div class="camera-card-title">{{ camera.model_name }}</div>
-        <div class="camera-card-specs">
-            <div class="camera-card-power">{{ camera.power }} Вт</div>
-            <div class="camera-card-resolution">{{ camera.resolution }}</div>
-            <div class="camera-card-badge">{{ camera.housing_type }}</div>
-        </div>
-        <div class="camera-card-likes">
-            <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M1.56479 2.39991C1.19694 2.93478 1.00001 3.56865 1 4.21779C1 5.55947 1.87507 6.55114 2.75013 7.42615L5.96338 10.5365C6.07366 10.66 6.20894 10.7585 6.36025 10.8257C6.51155 10.8928 6.67542 10.927 6.84095 10.926C7.00649 10.9249 7.1699 10.8887 7.32035 10.8196C7.47079 10.7505 7.60481 10.6503 7.71352 10.5254L10.9174 7.42615C11.7925 6.55114 12.6676 5.55363 12.6676 4.21779C12.6707 3.56722 12.4755 2.93115 12.1082 2.39421C11.7408 1.85728 11.2186 1.44496 10.6111 1.21212C10.0036 0.979291 9.33953 0.936993 8.70738 1.09086C8.07522 1.24472 7.50492 1.58745 7.07238 2.07343C7.04182 2.10611 7.00487 2.13216 6.96383 2.14997C6.92279 2.16778 6.87852 2.17697 6.83378 2.17697C6.78904 2.17697 6.74478 2.16778 6.70373 2.14997C6.66269 2.13216 6.62574 2.10611 6.59518 2.07343C6.16128 1.59059 5.59111 1.25072 4.95998 1.0987C4.32885 0.946681 3.66645 0.989671 3.06026 1.22199C2.45408 1.45431 1.93263 1.86503 1.56479 2.39991Z" fill="#D71820" stroke="#D71820" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <span>{{ camera.likes|length }}</span>
-        </div>
-    </a>
+    <div class="camera-card">
+        <a href="/cameras/feed/{{ camera.id }}" class="camera-card-link">
+            <img src="{{ camera.image_url or '/static/img/default_camera.jpg' }}" alt="{{ camera.model_name }}" class="camera-thumbnail" loading="lazy">
+            <div class="camera-card-title">{{ camera.model_name }}</div>
+            <div class="camera-card-specs">
+                <div class="camera-card-power">{{ camera.power }} Вт</div>
+                <div class="camera-card-resolution">{{ camera.resolution }}</div>
+                <div class="camera-card-badge">{{ camera.housing_type }}</div>
+            </div>
+            <div class="camera-card-likes">
+                <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1.56479 2.39991C1.19694 2.93478 1.00001 3.56865 1 4.21779C1 5.55947 1.87507 6.55114 2.75013 7.42615L5.96338 10.5365C6.07366 10.66 6.20894 10.7585 6.36025 10.8257C6.51155 10.8928 6.67542 10.927 6.84095 10.926C7.00649 10.9249 7.1699 10.8887 7.32035 10.8196C7.47079 10.7505 7.60481 10.6503 7.71352 10.5254L10.9174 7.42615C11.7925 6.55114 12.6676 5.55363 12.6676 4.21779C12.6707 3.56722 12.4755 2.93115 12.1082 2.39421C11.7408 1.85728 11.2186 1.44496 10.6111 1.21212C10.0036 0.979291 9.33953 0.936993 8.70738 1.09086C8.07522 1.24472 7.50492 1.58745 7.07238 2.07343C7.04182 2.10611 7.00487 2.13216 6.96383 2.14997C6.92279 2.16778 6.87852 2.17697 6.83378 2.17697C6.78904 2.17697 6.74478 2.16778 6.70373 2.14997C6.66269 2.13216 6.62574 2.10611 6.59518 2.07343C6.16128 1.59059 5.59111 1.25072 4.95998 1.0987C4.32885 0.946681 3.66645 0.989671 3.06026 1.22199C2.45408 1.45431 1.93263 1.86503 1.56479 2.39991Z" fill="#D71820" stroke="#D71820" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span>{{ camera.likes|length }}</span>
+            </div>
+        </a>
+        <form action="/cameras/{{ camera.id }}/delete" method="post" class="camera-card-delete-form">
+            <button type="submit" class="camera-card-delete-btn" title="Удалить камеру">Удалить</button>
+        </form>
+    </div>
     {% endfor %}
 </main>
 {% endblock %}

@@ -1,61 +1,102 @@
 {% extends "base.html" %}
 
-{% block title %}Добавить модель камеры - Черновик{% endblock %}
+{% block title %}Добавить модель камеры - {% if has_draft %}Черновик{% else %}Создание{% endif %}{% endblock %}
 
 {% block content %}
 <header class="create-header">
     <h1 class="create-heading">Добавить модель камеры</h1>
     <div class="create-status-badge">
-        {{ "Черновик" if camera.status == "draft" else camera.status }}
+        {% if has_draft %}Черновик{% else %}Новая камера{% endif %}
     </div>
 </header>
 
 <main class="create-content-scroll">
-    <section class="create-media-row">
-        <label class="create-media-slot" title="Выбрать фото камеры">
-            <input type="file" accept="image/*" class="create-media-file-input">
-            <svg width="22" height="22" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16 10.9997L13.4283 8.42808C13.1158 8.11563 12.6919 7.9401 12.25 7.9401C11.8081 7.9401 11.3842 8.11563 11.0717 8.42808L3.5 15.9997M2.66667 1H14.3333C15.2538 1 16 1.74619 16 2.66667V14.3333C16 15.2538 15.2538 16 14.3333 16H2.66667C1.74619 16 1 15.2538 1 14.3333V2.66667C1 1.74619 1.74619 1 2.66667 1ZM7.66667 6C7.66667 6.92047 6.92047 7.66667 6 7.66667C5.07953 7.66667 4.33333 6.92047 4.33333 6C4.33333 5.07953 5.07953 4.33333 6 4.33333C6.92047 4.33333 7.66667 5.07953 7.66667 6Z" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <div class="create-slot-title">Фото камеры</div>
-        </label>
-        <label class="create-media-slot" title="Выбрать видео камеры">
-            <input type="file" accept="video/*" class="create-media-file-input">
-            <svg width="22" height="22" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8.21732 4.3336H11.0009C11.4429 4.3336 11.8669 4.50921 12.1794 4.82179C12.492 5.13438 12.6676 5.55834 12.6676 6.0004V8.0839L17.0413 5.53203C17.1046 5.49508 17.1766 5.47549 17.2499 5.47524C17.3232 5.47499 17.3953 5.49409 17.4589 5.53061C17.5224 5.56713 17.5753 5.61978 17.612 5.68325C17.6487 5.74671 17.668 5.81874 17.668 5.89206V12.7226M12.6675 12.6676C12.6675 13.1097 12.4919 13.5336 12.1793 13.8462C11.8667 14.1588 11.4428 14.3344 11.0007 14.3344H2.66679C2.22473 14.3344 1.80077 14.1588 1.48819 13.8462C1.17561 13.5336 1 13.1097 1 12.6676V6.0004C1 5.55834 1.17561 5.13438 1.48819 4.82179C1.80077 4.50921 2.22473 4.3336 2.66679 4.3336H4.33357M1 1L17.6679 17.668" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <div class="create-slot-title">Видео камеры</div>
-        </label>
-    </section>
+    {% if not has_draft %}
+    <form method="post" action="/cameras" class="create-form">
+        <section class="create-media-row">
+            <label class="create-media-slot" title="Выбрать фото камеры">
+                <input type="file" accept="image/*" class="create-media-file-input">
+                <svg width="22" height="22" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 10.9997L13.4283 8.42808C13.1158 8.11563 12.6919 7.9401 12.25 7.9401C11.8081 7.9401 11.3842 8.11563 11.0717 8.42808L3.5 15.9997M2.66667 1H14.3333C15.2538 1 16 1.74619 16 2.66667V14.3333C16 15.2538 15.2538 16 14.3333 16H2.66667C1.74619 16 1 15.2538 1 14.3333V2.66667C1 1.74619 1.74619 1 2.66667 1ZM7.66667 6C7.66667 6.92047 6.92047 7.66667 6 7.66667C5.07953 7.66667 4.33333 6.92047 4.33333 6C4.33333 5.07953 5.07953 4.33333 6 4.33333C6.92047 4.33333 7.66667 5.07953 7.66667 6Z" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <div class="create-slot-title">Фото камеры</div>
+            </label>
+            <label class="create-media-slot" title="Выбрать видео камеры">
+                <input type="file" accept="video/*" class="create-media-file-input">
+                <svg width="22" height="22" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8.21732 4.3336H11.0009C11.4429 4.3336 11.8669 4.50921 12.1794 4.82179C12.492 5.13438 12.6676 5.55834 12.6676 6.0004V8.0839L17.0413 5.53203C17.1046 5.49508 17.1766 5.47549 17.2499 5.47524C17.3232 5.47499 17.3953 5.49409 17.4589 5.53061C17.5224 5.56713 17.5753 5.61978 17.612 5.68325C17.6487 5.74671 17.668 5.81874 17.668 5.89206V12.7226M12.6675 12.6676C12.6675 13.1097 12.4919 13.5336 12.1793 13.8462C11.8667 14.1588 11.4428 14.3344 11.0007 14.3344H2.66679C2.22473 14.3344 1.80077 14.1588 1.48819 13.8462C1.17561 13.5336 1 13.1097 1 12.6676V6.0004C1 5.55834 1.17561 5.13438 1.48819 4.82179C1.80077 4.50921 2.22473 4.3336 2.66679 4.3336H4.33357M1 1L17.6679 17.668" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <div class="create-slot-title">Видео камеры</div>
+            </label>
+        </section>
 
-    <section class="create-specs-group">
-        <div class="create-field-item">
-            <label for="model_name" class="create-field-label">Название модели</label>
-            <div class="create-field-container">
-                <input type="text" id="model_name" name="model_name" class="create-field-input" value="{{ camera.model_name }}">
+        <section class="create-specs-group">
+            <div class="create-field-item">
+                <label for="model_name" class="create-field-label">Название модели</label>
+                <div class="create-field-container">
+                    <input type="text" id="model_name" name="model_name" class="create-field-input" required>
+                </div>
             </div>
-        </div>
+        </section>
 
-        <div class="create-field-item">
-            <label for="power" class="create-field-label">Потребляемая мощность (Вт)</label>
-            <div class="create-field-container">
-                <input type="number" min="0" step="0.1" id="power" name="power" class="create-field-input" value="{{ camera.power }}">
+        <button type="submit" class="create-submit-btn">Далее</button>
+    </form>
+    {% else %}
+    <form method="post" action="/cameras/{{ camera.id }}/publish" class="create-form">
+        <section class="create-media-row">
+            <div class="create-media-slot create-media-slot-static">
+                <svg width="22" height="22" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 10.9997L13.4283 8.42808C13.1158 8.11563 12.6919 7.9401 12.25 7.9401C11.8081 7.9401 11.3842 8.11563 11.0717 8.42808L3.5 15.9997M2.66667 1H14.3333C15.2538 1 16 1.74619 16 2.66667V14.3333C16 15.2538 15.2538 16 14.3333 16H2.66667C1.74619 16 1 15.2538 1 14.3333V2.66667C1 1.74619 1.74619 1 2.66667 1ZM7.66667 6C7.66667 6.92047 6.92047 7.66667 6 7.66667C5.07953 7.66667 4.33333 6.92047 4.33333 6C4.33333 5.07953 5.07953 4.33333 6 4.33333C6.92047 4.33333 7.66667 5.07953 7.66667 6Z" stroke="#6B7280" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <div class="create-slot-title">Фото камеры (по умолчанию)</div>
             </div>
-        </div>
+            <div class="create-media-slot create-media-slot-static">
+                <svg width="22" height="22" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8.21732 4.3336H11.0009C11.4429 4.3336 11.8669 4.50921 12.1794 4.82179C12.492 5.13438 12.6676 5.55834 12.6676 6.0004V8.0839L17.0413 5.53203C17.1046 5.49508 17.1766 5.47549 17.2499 5.47524C17.3232 5.47499 17.3953 5.49409 17.4589 5.53061C17.5224 5.56713 17.5753 5.61978 17.612 5.68325C17.6487 5.74671 17.668 5.81874 17.668 5.89206V12.7226M12.6675 12.6676C12.6675 13.1097 12.4919 13.5336 12.1793 13.8462C11.8667 14.1588 11.4428 14.3344 11.0007 14.3344H2.66679C2.22473 14.3344 1.80077 14.1588 1.48819 13.8462C1.17561 13.5336 1 13.1097 1 12.6676V6.0004C1 5.55834 1.17561 5.13438 1.48819 4.82179C1.80077 4.50921 2.22473 4.3336 2.66679 4.3336H4.33357M1 1L17.6679 17.668" stroke="#6B7280" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <div class="create-slot-title">Видео камеры (по умолчанию)</div>
+            </div>
+        </section>
 
-        <div class="create-field-item">
-            <label for="resolution" class="create-field-label">Разрешение</label>
-            <div class="create-field-container">
-                <input type="text" id="resolution" name="resolution" class="create-field-input" value="{{ camera.resolution }}">
+        <section class="create-specs-group">
+            <div class="create-field-item">
+                <label for="model_name" class="create-field-label">Название модели</label>
+                <div class="create-field-container">
+                    <input type="text" id="model_name" name="model_name" class="create-field-input" value="{{ camera.model_name }}" required>
+                </div>
             </div>
-        </div>
 
-        <div class="create-field-item">
-            <label for="housing_type" class="create-field-label">Тип корпуса</label>
-            <div class="create-field-container">
-                <input type="text" id="housing_type" name="housing_type" class="create-field-input" value="{{ camera.housing_type }}">
+            <div class="create-field-item">
+                <label for="power" class="create-field-label">Потребляемая мощность (Вт)</label>
+                <div class="create-field-container">
+                    <input type="number" min="0" step="0.1" id="power" name="power" class="create-field-input" value="{{ camera.power if camera.power is not none else '' }}" required>
+                </div>
             </div>
-        </div>
-    </section>
+
+            <div class="create-field-item">
+                <label for="resolution" class="create-field-label">Разрешение</label>
+                <div class="create-field-container">
+                    <input type="text" id="resolution" name="resolution" class="create-field-input" value="{{ camera.resolution or '' }}" required>
+                </div>
+            </div>
+
+            <div class="create-field-item">
+                <label for="housing_type" class="create-field-label">Тип корпуса</label>
+                <div class="create-field-container">
+                    <input type="text" id="housing_type" name="housing_type" class="create-field-input" value="{{ camera.housing_type or '' }}" required>
+                </div>
+            </div>
+
+            <div class="create-field-item">
+                <label for="description" class="create-field-label">Описание</label>
+                <div class="create-field-container">
+                    <input type="text" id="description" name="description" class="create-field-input" value="{{ camera.description or '' }}" required>
+                </div>
+            </div>
+        </section>
+
+        <button type="submit" class="create-submit-btn">Опубликовать</button>
+    </form>
+    {% endif %}
 </main>
 {% endblock %}

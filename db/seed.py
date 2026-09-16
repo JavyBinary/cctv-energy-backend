@@ -1,6 +1,23 @@
-from typing import Any, Dict, List, Optional
+import asyncio
+from datetime import datetime, timezone
 
-CAMERAS: List[Dict[str, Any]] = [
+from sqlalchemy import select, text
+
+from db.session import async_session_maker
+from models.camera import Camera
+from models.like import CameraLike
+from models.user import User
+
+SEED_USERS = [
+    {"id": 1, "username": "admin", "password": "password123"},
+    {"id": 101, "username": "user_101", "password": "password123"},
+    {"id": 102, "username": "user_102", "password": "password123"},
+    {"id": 103, "username": "user_103", "password": "password123"},
+    {"id": 104, "username": "user_104", "password": "password123"},
+    {"id": 105, "username": "user_105", "password": "password123"},
+]
+
+SEED_CAMERAS = [
     {
         "id": 1,
         "model_name": "DS-2CE16D8T-ITE",
@@ -8,11 +25,11 @@ CAMERAS: List[Dict[str, Any]] = [
         "power": 3.6,
         "resolution": "Full HD",
         "housing_type": "Цилиндрический",
-        "is_outdoor": True,
         "status": "published",
         "image_url": "http://localhost:9000/media/camera_1.jpg",
         "video_url": "http://localhost:9000/media/video_1.mp4",
-        "likes": [101, 102, 103, 104, 105],
+        "creator_id": 1,
+        "published_at": datetime.now(timezone.utc),
     },
     {
         "id": 2,
@@ -21,11 +38,11 @@ CAMERAS: List[Dict[str, Any]] = [
         "power": 6.0,
         "resolution": "Full HD",
         "housing_type": "Купольный",
-        "is_outdoor": False,
         "status": "published",
         "image_url": "http://localhost:9000/media/camera_2.jpg",
         "video_url": "http://localhost:9000/media/video_2.mp4",
-        "likes": [101, 102],
+        "creator_id": 1,
+        "published_at": datetime.now(timezone.utc),
     },
     {
         "id": 3,
@@ -34,11 +51,11 @@ CAMERAS: List[Dict[str, Any]] = [
         "power": 7.0,
         "resolution": "2K QHD",
         "housing_type": "Стандартный",
-        "is_outdoor": False,
         "status": "published",
         "image_url": "http://localhost:9000/media/camera_3.jpg",
         "video_url": "http://localhost:9000/media/video_3.mp4",
-        "likes": [101, 102, 103],
+        "creator_id": 1,
+        "published_at": datetime.now(timezone.utc),
     },
     {
         "id": 4,
@@ -47,11 +64,11 @@ CAMERAS: List[Dict[str, Any]] = [
         "power": 6.5,
         "resolution": "Super HD",
         "housing_type": "Цилиндрический",
-        "is_outdoor": True,
         "status": "published",
         "image_url": "http://localhost:9000/media/camera_4.jpg",
         "video_url": "http://localhost:9000/media/video_4.mp4",
-        "likes": [101],
+        "creator_id": 1,
+        "published_at": datetime.now(timezone.utc),
     },
     {
         "id": 5,
@@ -60,11 +77,11 @@ CAMERAS: List[Dict[str, Any]] = [
         "power": 4.2,
         "resolution": "Full HD",
         "housing_type": "Купольный",
-        "is_outdoor": True,
         "status": "draft",
         "image_url": "http://localhost:9000/media/camera_1.jpg",
         "video_url": "http://localhost:9000/media/video_1.mp4",
-        "likes": [],
+        "creator_id": 1,
+        "published_at": None,
     },
     {
         "id": 6,
@@ -73,42 +90,72 @@ CAMERAS: List[Dict[str, Any]] = [
         "power": 4.0,
         "resolution": "HD Ready",
         "housing_type": "Цилиндрический",
-        "is_outdoor": True,
         "status": "deleted",
         "image_url": "http://localhost:9000/media/camera_2.jpg",
         "video_url": "http://localhost:9000/media/video_2.mp4",
-        "likes": [],
+        "creator_id": 1,
+        "published_at": None,
     },
 ]
 
-for _cam in CAMERAS:
-    _cam["summary"] = _cam["description"]
+SEED_LIKES = [
+    (101, 1),
+    (102, 1),
+    (103, 1),
+    (104, 1),
+    (105, 1),
+    (101, 2),
+    (102, 2),
+    (101, 3),
+    (102, 3),
+    (103, 3),
+    (101, 4),
+]
 
 
-def get_published_cameras(power_max: Optional[float] = None) -> List[Dict[str, Any]]:
-    result = [c for c in CAMERAS if c["status"] == "published"]
-    if power_max is not None:
-        result = [c for c in result if c["power"] <= power_max]
-    return result
+async def seed_db():
+    async with async_session_maker() as session:
+        await session.execute(text("DELETE FROM camera_likes"))
+        await session.execute(text("DELETE FROM cameras"))
+        await session.execute(text("DELETE FROM users"))
+        await session.commit()
+
+        for u in SEED_USERS:
+            session.add(User(**u))
+        await session.commit()
+
+        for c in SEED_CAMERAS:
+            session.add(Camera(**c))
+        await session.commit()
+
+        for user_id, camera_id in SEED_LIKES:
+            existing = await session.scalar(
+                select(CameraLike).where(
+                    CameraLike.user_id == user_id, CameraLike.camera_id == camera_id
+                )
+            )
+            if not existing:
+                session.add(CameraLike(user_id=user_id, camera_id=camera_id))
+        await session.commit()
+
+        await session.execute(
+            text(
+                "SELECT setval('cameras_id_seq', COALESCE((SELECT max(id) FROM cameras), 1))"
+            )
+        )
+        await session.execute(
+            text(
+                "SELECT setval('users_id_seq', COALESCE((SELECT max(id) FROM users), 1))"
+            )
+        )
+        await session.execute(
+            text(
+                "SELECT setval('camera_likes_id_seq', COALESCE((SELECT max(id) FROM camera_likes), 1))"
+            )
+        )
+        await session.commit()
 
 
-def get_camera_by_id(camera_id: int) -> Optional[Dict[str, Any]]:
-    return next(
-        (c for c in CAMERAS if c["id"] == camera_id and c["status"] == "published"),
-        None,
-    )
-
-
-def get_next_published_camera(current_id: int) -> Optional[Dict[str, Any]]:
-    published = [c for c in CAMERAS if c["status"] == "published"]
-    if not published:
-        return None
-    for idx, c in enumerate(published):
-        if c["id"] == current_id:
-            next_idx = (idx + 1) % len(published)
-            return published[next_idx]
-    return published[0]
-
-
-def get_draft_camera() -> Optional[Dict[str, Any]]:
-    return next((c for c in CAMERAS if c["status"] == "draft"), None)
+if __name__ == "__main__":
+    asyncio.run(seed_db())
+    print("Database seeding completed successfully.")

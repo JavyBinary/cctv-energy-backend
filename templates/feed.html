@@ -6,7 +6,7 @@
 {% block content %}
 <div class="feed-video-container">
     <video autoplay loop muted playsinline class="feed-video-player">
-        <source src="{{ camera.video_url }}" type="video/mp4">
+        <source src="{{ camera.video_url or '/static/video/default_video.mp4' }}" type="video/mp4">
         Ваш браузер не поддерживает воспроизведение видео.
     </video>
     <div class="feed-gradient-overlay"></div>
@@ -17,10 +17,12 @@
     <input type="checkbox" id="feed-expand-toggle" class="feed-expand-checkbox">
     <div class="feed-summary-row">
         <span class="feed-summary-text">{{ camera.summary }}</span>
+        {% if camera.description and camera.description|length > 35 %}
         <label for="feed-expand-toggle" class="feed-expand-btn">
             <span class="feed-expand-more">Ещё</span>
             <span class="feed-expand-less">Свернуть</span>
         </label>
+        {% endif %}
     </div>
 </section>
 
