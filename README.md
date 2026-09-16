@@ -30,30 +30,30 @@ erDiagram
     CAMERAS ||--o{ CAMERA_LIKES : receives
 
     USERS {
-        bigint id PK "первичный ключ"
-        varchar username UK "логин пользователя до 50 символов"
-        varchar password "хэш пароля до 100 символов"
-        timestamptz created_at "дата и время регистрации"
+        bigint id PK "NN, автоинкремент"
+        varchar username UK "NN, логин до 50 символов"
+        varchar password "NN, хэш пароля до 100 символов"
+        timestamptz created_at "NN, дата регистрации"
     }
 
     CAMERAS {
-        bigint id PK "первичный ключ"
-        varchar model_name "название модели камеры до 100 символов"
-        varchar description "техническое описание до 500 символов"
-        varchar housing_type "Цилиндрический, Купольный или Стандартный"
-        double_precision power "потребляемая мощность в Вт (фильтрация)"
-        varchar resolution "разрешение: Full HD, 2K QHD, Super HD"
-        varchar image_url "ссылка на изображение в MinIO cctv-media"
-        varchar video_url "ссылка на видеопоток в MinIO cctv-media"
-        varchar status "статус: draft, published или deleted"
-        timestamptz created_at "время создания карточки"
-        timestamptz published_at "время публикации, может отсутствовать"
-        bigint creator_id FK "внешний ключ на USERS(id), RESTRICT"
+        bigint id PK "NN, автоинкремент"
+        varchar model_name "NN, название модели камеры"
+        varchar status "NN, 'draft', 'published' или 'deleted'"
+        timestamptz created_at "NN, время создания записи"
+        bigint creator_id FK "NN, внешний ключ на USERS(id)"
+        varchar description "N, техническое описание (после 'Далее')"
+        double_precision power "N, мощность в Вт (после 'Далее')"
+        varchar resolution "N, разрешение (после 'Далее')"
+        varchar housing_type "N, тип корпуса (после 'Далее')"
+        varchar image_url "N, ссылка на изображение MinIO"
+        varchar video_url "N, ссылка на видео MinIO"
+        timestamptz published_at "N, дата публикации (NULL у draft)"
     }
 
     CAMERA_LIKES {
-        bigint id PK "первичный ключ"
-        bigint user_id FK "внешний ключ на USERS(id), RESTRICT"
-        bigint camera_id FK "внешний ключ на CAMERAS(id), RESTRICT"
+        bigint id PK "NN, автоинкремент"
+        bigint user_id FK "NN, внешний ключ на USERS(id)"
+        bigint camera_id FK "NN, внешний ключ на CAMERAS(id)"
     }
 ```
