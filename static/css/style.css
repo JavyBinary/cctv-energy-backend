@@ -201,11 +201,11 @@ body {
 }
 
 .catalog-search-button {
-    height: 40px;
-    padding: 0 18px;
+    height: 38px;
+    padding: 0 20px;
     background: #D71820;
     border: none;
-    border-radius: 10px;
+    border-radius: 19px;
     color: #ffffff;
     font-size: 14px;
     font-weight: 700;
@@ -235,9 +235,8 @@ body {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
-    align-items: start;
     align-content: start;
-    grid-auto-rows: max-content;
+    grid-auto-rows: 1fr;
 }
 
 .camera-card {
@@ -251,8 +250,8 @@ body {
     align-items: center;
     gap: 6px;
     color: #000000;
-    align-self: start;
-    height: auto;
+    height: 100%;
+    min-height: 295px;
     box-sizing: border-box;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
@@ -270,6 +269,7 @@ body {
     background: #ffffff;
     display: block;
     padding: 4px;
+    box-sizing: border-box;
 }
 
 .camera-card-title {
@@ -278,7 +278,13 @@ body {
     text-align: center;
     color: #000000;
     padding: 0 4px;
-    line-height: 1.2;
+    line-height: 1.25;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .camera-card-specs {
@@ -288,6 +294,7 @@ body {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
+    flex: 1;
 }
 
 .camera-card-power {
@@ -311,6 +318,11 @@ body {
     font-size: 11px;
     font-weight: 600;
     color: #000000;
+    min-height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
 .camera-card-likes {
@@ -322,6 +334,7 @@ body {
     font-size: 11px;
     font-weight: 500;
     color: #000000;
+    margin-top: 4px;
 }
 
 .camera-card-link {
@@ -332,33 +345,33 @@ body {
     align-items: center;
     gap: 6px;
     width: 100%;
+    flex: 1;
 }
 
 .camera-card-delete-form {
     width: 100%;
-    margin-top: 4px;
+    margin-top: auto;
 }
 
 .camera-card-delete-btn {
     width: 100%;
-    height: 30px;
-    border-radius: 15px;
-    background: #ffffff;
-    color: #D71820;
-    border: 1.5px solid #D71820;
+    height: 32px;
+    border-radius: 16px;
+    background: #D71820;
+    color: #ffffff;
+    border: none;
     font-family: inherit;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
 .camera-card-delete-btn:hover {
-    background: #D71820;
-    color: #ffffff;
+    background: #b5141b;
 }
 
 .camera-card-delete-btn:active {

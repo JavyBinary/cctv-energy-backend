@@ -100,39 +100,45 @@ async def get_camera_feed(
     next: bool = Query(False),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = (
-        select(Camera)
-        .options(selectinload(Camera.likes))
-        .where(Camera.status == "published")
-        .order_by(Camera.id)
-    )
-    result = await db.execute(stmt)
-    published = result.scalars().all()
-    if not published:
-        raise HTTPException(status_code=404, detail="No published cameras found")
-
     camera = None
     if camera_id is None:
-        camera = published[0]
-    elif next:
-        ids = [c.id for c in published]
-        if camera_id in ids:
-            curr_idx = ids.index(camera_id)
-            next_idx = (curr_idx + 1) % len(ids)
-            camera = published[next_idx]
-        else:
-            camera = published[0]
-    else:
-        cam_stmt = (
+        stmt = (
             select(Camera)
             .options(selectinload(Camera.likes))
-            .where(Camera.id == camera_id)
+            .where(Camera.status == "published")
+            .order_by(Camera.id.asc())
+            .limit(1)
         )
-        cam_res = await db.execute(cam_stmt)
-        found = cam_res.scalar_one_or_none()
-        if not found or found.status == "deleted":
-            raise HTTPException(status_code=404, detail="Camera not found or deleted")
-        camera = found
+        camera = (await db.execute(stmt)).scalar_one_or_none()
+    elif next:
+        stmt = (
+            select(Camera)
+            .options(selectinload(Camera.likes))
+            .where(Camera.status == "published", Camera.id > camera_id)
+            .order_by(Camera.id.asc())
+            .limit(1)
+        )
+        camera = (await db.execute(stmt)).scalar_one_or_none()
+        if not camera:
+            fallback_stmt = (
+                select(Camera)
+                .options(selectinload(Camera.likes))
+                .where(Camera.status == "published")
+                .order_by(Camera.id.asc())
+                .limit(1)
+            )
+            camera = (await db.execute(fallback_stmt)).scalar_one_or_none()
+    else:
+        stmt = (
+            select(Camera)
+            .options(selectinload(Camera.likes))
+            .where(Camera.id == camera_id, Camera.status == "published")
+            .limit(1)
+        )
+        camera = (await db.execute(stmt)).scalar_one_or_none()
+
+    if not camera:
+        raise HTTPException(status_code=404, detail="Camera not found or deleted")
 
     return templates.TemplateResponse(
         request=request,

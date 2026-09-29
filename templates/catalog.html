@@ -13,7 +13,7 @@
         <label for="power_max" class="catalog-filter-label">
             Мощность до: <output id="power_val" for="power_max">{{ current_val }}</output> Вт
         </label>
-        <form method="get" action="/cameras" class="catalog-filter-row" oninput="power_val.value = Number(power_max.value).toFixed(1)">
+        <form method="get" action="/cameras" class="catalog-filter-row">
             <div class="catalog-filter-range-wrap">
                 <input type="range" 
                        name="power_max" 
@@ -24,7 +24,7 @@
                        value="{{ current_num }}" 
                        style="--progress: {{ current_pct }}%;" 
                        class="catalog-range-slider"
-                       oninput="power_val.value = Number(this.value).toFixed(1); this.style.setProperty('--progress', (this.value / {{ max_limit }} * 100) + '%')">
+                       oninput="document.getElementById('power_val').value = Number(this.value).toFixed(1); this.style.setProperty('--progress', (this.value / {{ max_limit }} * 100) + '%')">
             </div>
             <button type="submit" class="catalog-search-button">Найти</button>
         </form>
@@ -38,9 +38,9 @@
             <img src="{{ camera.image_url or '/static/img/default_camera.jpg' }}" alt="{{ camera.model_name }}" class="camera-thumbnail" loading="lazy">
             <div class="camera-card-title">{{ camera.model_name }}</div>
             <div class="camera-card-specs">
-                <div class="camera-card-power">{{ camera.power }} Вт</div>
-                <div class="camera-card-resolution">{{ camera.resolution }}</div>
-                <div class="camera-card-badge">{{ camera.housing_type }}</div>
+                <div class="camera-card-power">{{ camera.power if camera.power is not none else '0.0' }} Вт</div>
+                <div class="camera-card-resolution">{{ camera.resolution or '—' }}</div>
+                <div class="camera-card-badge">{{ camera.housing_type or 'Универсальный' }}</div>
             </div>
             <div class="camera-card-likes">
                 <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
