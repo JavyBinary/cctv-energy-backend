@@ -139,19 +139,13 @@ async def seed_db():
         await session.commit()
 
         await session.execute(
-            text(
-                "SELECT setval('cameras_id_seq', COALESCE((SELECT max(id) FROM cameras), 1))"
-            )
+            text("SELECT setval('cameras_id_seq', COALESCE((SELECT max(id) FROM cameras), 1))")
         )
         await session.execute(
-            text(
-                "SELECT setval('users_id_seq', COALESCE((SELECT max(id) FROM users), 1))"
-            )
+            text("SELECT setval('users_id_seq', COALESCE((SELECT max(id) FROM users), 1))")
         )
         await session.execute(
-            text(
-                "SELECT setval('camera_likes_id_seq', COALESCE((SELECT max(id) FROM camera_likes), 1))"
-            )
+            text("SELECT setval('camera_likes_id_seq', COALESCE((SELECT max(id) FROM camera_likes), 1))")
         )
         await session.commit()
 

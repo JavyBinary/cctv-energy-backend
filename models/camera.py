@@ -16,12 +16,8 @@ class Camera(Base):
     power = Column(Float, nullable=True)
     resolution = Column(String(50), nullable=True)
     housing_type = Column(String(50), nullable=True)
-    created_at = Column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    creator_id = Column(
-        Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
-    )
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    creator_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     published_at = Column(DateTime(timezone=True), nullable=True)
 
     creator = relationship("User", back_populates="cameras")
