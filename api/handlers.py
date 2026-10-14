@@ -155,7 +155,6 @@ async def get_camera_feed(
 @router.post("/", response_class=RedirectResponse)
 async def create_camera_draft(
     model_name: str = Form(...),
-    housing_type: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
 ):
     existing = await db.scalar(
@@ -168,7 +167,6 @@ async def create_camera_draft(
             status="draft",
             image_url="/static/img/default_camera.jpg",
             video_url="/static/video/default_video.mp4",
-            housing_type=housing_type.strip() if housing_type else None,
         )
         db.add(new_draft)
         await db.commit()
@@ -182,7 +180,6 @@ async def publish_camera(
     description: Optional[str] = Form(None),
     power: Optional[float] = Form(None),
     resolution: Optional[str] = Form(None),
-    housing_type: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
 ):
     camera = await db.scalar(
@@ -199,8 +196,6 @@ async def publish_camera(
         camera.power = max(0.0, float(power))
     if resolution is not None:
         camera.resolution = resolution.strip() or None
-    if housing_type is not None:
-        camera.housing_type = housing_type.strip() or None
     camera.status = "published"
     camera.published_at = datetime.now(timezone.utc)
 

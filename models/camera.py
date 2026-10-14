@@ -15,7 +15,6 @@ class Camera(Base):
     video_url = Column(String(255), nullable=True)
     power = Column(Float, nullable=True)
     resolution = Column(String(50), nullable=True)
-    housing_type = Column(String(50), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     creator_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     published_at = Column(DateTime(timezone=True), nullable=True)

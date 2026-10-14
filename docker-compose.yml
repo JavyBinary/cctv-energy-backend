@@ -1,17 +1,17 @@
 services:
   minio:
+    container_name: minio_storage
     image: minio/minio:latest
-    container_name: cctv_minio_server
-    restart: always
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
       - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_CONSOLE_ADDRESS: ":9001"
     volumes:
-      - minio_cctv_data:/data
+      - minio-data:/data
+    command: server /data --console-address ":9001"
 
   postgres:
     container_name: postgres_db
@@ -33,6 +33,15 @@ services:
     depends_on:
       - postgres
 
+  redis:
+    container_name: redis_cache
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
 volumes:
-  minio_cctv_data:
+  minio-data:
   postgres_data:
+  redis_data:

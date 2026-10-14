@@ -28,7 +28,6 @@ def upgrade() -> None:
     sa.Column('video_url', sa.String(length=255), nullable=True),
     sa.Column('power', sa.Float(), nullable=True),
     sa.Column('resolution', sa.String(length=50), nullable=True),
-    sa.Column('housing_type', sa.String(length=50), nullable=True),
     sa.Column('is_outdoor', sa.Boolean(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('creator_id', sa.Integer(), nullable=False),

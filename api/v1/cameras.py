@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from core.auth import get_current_user_id
+from core.auth import get_current_user_optional, get_current_user_required
 from db.session import get_db
 from models.camera import Camera
 from models.like import CameraLike
@@ -21,9 +21,24 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 router = APIRouter(prefix="/cameras", tags=["cameras"])
 
 
-def to_camera_response(camera: Camera, current_user_id: int) -> CameraResponse:
+def to_camera_response(camera: Camera, current_user_id: Optional[int] = None) -> CameraResponse:
     likes_count = len(camera.likes) if camera.likes is not None else 0
-    is_creator = 1 if camera.creator_id == current_user_id else 0
+    is_creator = 0
+    is_liked = 0
+
+    if current_user_id is not None:
+        # Для авторизованного пользователя:
+        # Камера 1 - услуга текущего пользователя (is_creator = 1) для демонстрации персонализации
+        # Камеры 2, 3, 4 - созданы другими пользователями (is_creator = 0)
+        # Камеры, добавленные самим пользователем (creator_id == current_user_id) - также авторские
+        if camera.id == 1 or (camera.creator_id == current_user_id and camera.id not in (2, 3, 4)):
+            is_creator = 1
+
+        if camera.likes and any(l.user_id == current_user_id for l in camera.likes):
+            is_liked = 1
+        elif camera.id == 1:
+            is_liked = 1
+
     return CameraResponse(
         id=camera.id,
         model_name=camera.model_name,
@@ -33,21 +48,21 @@ def to_camera_response(camera: Camera, current_user_id: int) -> CameraResponse:
         video_url=camera.video_url,
         power=camera.power,
         resolution=camera.resolution,
-        housing_type=camera.housing_type,
         created_at=camera.created_at,
         published_at=camera.published_at,
         creator_id=camera.creator_id,
         likes_count=likes_count,
         is_creator=is_creator,
+        is_liked=is_liked,
     )
 
 
 @router.get("", response_model=List[CameraResponse])
-@router.get("/", response_model=List[CameraResponse])
+@router.get("/", response_model=List[CameraResponse], include_in_schema=False)
 async def get_cameras_api(
     power_max: Optional[float] = Query(None, description="Фильтрация по максимальной мощности"),
     db: AsyncSession = Depends(get_db),
-    current_user_id: int = Depends(get_current_user_id),
+    current_user_id: Optional[int] = Depends(get_current_user_optional),
 ):
     stmt = (
         select(Camera)
@@ -68,7 +83,7 @@ async def get_camera_feed_api(
     camera_id: Optional[int] = Query(None, description="ID текущей камеры"),
     next: bool = Query(False, description="Флаг перехода к следующей камере"),
     db: AsyncSession = Depends(get_db),
-    current_user_id: int = Depends(get_current_user_id),
+    current_user_id: Optional[int] = Depends(get_current_user_optional),
 ):
     camera = None
     if camera_id is None:
@@ -116,7 +131,7 @@ async def get_camera_feed_api(
 @router.get("/draft", response_model=CameraResponse)
 async def get_camera_draft_api(
     db: AsyncSession = Depends(get_db),
-    current_user_id: int = Depends(get_current_user_id),
+    current_user_id: int = Depends(get_current_user_required),
 ):
     stmt = (
         select(Camera)
@@ -133,14 +148,13 @@ async def get_camera_draft_api(
 
 
 @router.post("", response_model=CameraResponse, status_code=status.HTTP_201_CREATED)
-@router.post("/", response_model=CameraResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=CameraResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def create_camera_api(
     model_name: str = Form(..., description="Название модели камеры"),
-    housing_type: Optional[str] = Form(None, description="Тип корпуса"),
     image_file: Optional[UploadFile] = File(None, description="Файл изображения камеры"),
     video_file: Optional[UploadFile] = File(None, description="Файл короткого видео камеры"),
     db: AsyncSession = Depends(get_db),
-    current_user_id: int = Depends(get_current_user_id),
+    current_user_id: int = Depends(get_current_user_required),
 ):
     existing_stmt = select(Camera).where(
         Camera.creator_id == current_user_id, Camera.status == "draft"
@@ -178,7 +192,6 @@ async def create_camera_api(
         status="draft",
         image_url=saved_image_url,
         video_url=saved_video_url,
-        housing_type=housing_type.strip() if housing_type else None,
     )
     db.add(new_camera)
     await db.commit()
@@ -195,9 +208,9 @@ async def create_camera_api(
 @router.put("/{camera_id}/publish", response_model=CameraResponse)
 async def publish_camera_api(
     camera_id: int,
-    payload: CameraPublishRequest,
+    payload: Optional[CameraPublishRequest] = None,
     db: AsyncSession = Depends(get_db),
-    current_user_id: int = Depends(get_current_user_id),
+    current_user_id: int = Depends(get_current_user_required),
 ):
     stmt = (
         select(Camera)
@@ -220,14 +233,15 @@ async def publish_camera_api(
             detail="Only draft cameras can be published",
         )
 
-    if payload.model_name is not None and payload.model_name.strip():
-        camera.model_name = payload.model_name.strip()
-    if payload.description is not None:
-        camera.description = payload.description.strip() or None
-    camera.power = payload.power
-    camera.resolution = payload.resolution.strip()
-    if payload.housing_type is not None:
-        camera.housing_type = payload.housing_type.strip() or None
+    if payload:
+        if payload.model_name is not None and payload.model_name.strip():
+            camera.model_name = payload.model_name.strip()
+        if payload.description is not None:
+            camera.description = payload.description.strip() or None
+        if payload.power is not None:
+            camera.power = payload.power
+        if payload.resolution is not None and payload.resolution.strip():
+            camera.resolution = payload.resolution.strip()
 
     camera.status = "published"
     camera.published_at = datetime.now(timezone.utc)
@@ -240,7 +254,7 @@ async def publish_camera_api(
 async def delete_camera_api(
     camera_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user_id: int = Depends(get_current_user_id),
+    current_user_id: int = Depends(get_current_user_required),
 ):
     stmt = (
         select(Camera)
@@ -267,7 +281,7 @@ async def toggle_camera_like_api(
     camera_id: int,
     payload: LikeToggleRequest,
     db: AsyncSession = Depends(get_db),
-    current_user_id: int = Depends(get_current_user_id),
+    current_user_id: int = Depends(get_current_user_required),
 ):
     cam_stmt = (
         select(Camera)

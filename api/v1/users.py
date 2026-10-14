@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.auth import extract_session_id
+from core.session import create_session, delete_session
 from db.session import get_db
 from models.user import User
 from schemas.user import UserLoginRequest, UserLoginResponse, UserRegisterRequest, UserResponse
@@ -9,6 +11,7 @@ from schemas.user import UserLoginRequest, UserLoginResponse, UserRegisterReques
 router = APIRouter(prefix="/users", tags=["users"])
 
 
+@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register_user_api(
     payload: UserRegisterRequest,
@@ -33,9 +36,11 @@ async def register_user_api(
     return UserResponse(id=new_user.id, username=new_user.username)
 
 
+@router.post("/authentication", response_model=UserLoginResponse, status_code=status.HTTP_200_OK, include_in_schema=False)
 @router.post("/login", response_model=UserLoginResponse, status_code=status.HTTP_200_OK)
 async def login_user_api(
     payload: UserLoginRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
     stmt = select(User).where(User.username == payload.username.strip())
@@ -46,12 +51,30 @@ async def login_user_api(
             detail="Invalid username or password",
         )
 
+    session_id = await create_session(user.id)
+    response.set_cookie(
+        key="session_id",
+        value=session_id,
+        httponly=True,
+        samesite="lax",
+        path="/",
+        max_age=86400,
+    )
+
     return UserLoginResponse(
-        token=f"stub_session_token_user_{user.id}",
+        session_id=session_id,
+        token=session_id,
         user_id=user.id,
     )
 
 
 @router.post("/logout", status_code=status.HTTP_200_OK)
-async def logout_user_api():
+async def logout_user_api(
+    request: Request,
+    response: Response,
+):
+    session_id = extract_session_id(request)
+    if session_id:
+        await delete_session(session_id)
+    response.delete_cookie(key="session_id", path="/")
     return Response(status_code=status.HTTP_200_OK)

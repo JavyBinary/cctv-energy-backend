@@ -19,5 +19,6 @@ class UserLoginRequest(BaseModel):
 
 
 class UserLoginResponse(BaseModel):
+    session_id: str
     token: str
     user_id: int
