@@ -100,3 +100,25 @@ async def get_active_sessions() -> Dict[str, int]:
         except Exception:
             pass
     return sessions
+
+
+LUA_GET_ACTIVE_SESSIONS = """
+local session_keys = redis.call('keys', 'session:*')
+local active_sessions = {}
+for index, session_key in ipairs(session_keys) do
+    local user_id = redis.call('get', session_key)
+    table.insert(active_sessions, session_key .. ' -> user_id: ' .. tostring(user_id))
+end
+return active_sessions
+"""
+
+
+async def get_active_sessions_via_lua() -> list:
+    client = get_redis_client()
+    if client:
+        try:
+            return await client.eval(LUA_GET_ACTIVE_SESSIONS, 0)
+        except Exception:
+            pass
+    return [f"session:{k} -> user_id: {v}" for k, v in _memory_sessions.items()]
+

@@ -6,11 +6,9 @@ from core.session import get_session_user_id
 def extract_session_id(request: Request) -> Optional[str]:
     raw_token = None
 
-    # 1. Из куки FastAPI
     if "session_id" in request.cookies:
         raw_token = request.cookies.get("session_id")
 
-    # 2. Из заголовка Cookie (ручная строка для Postman / Insomnia: "Cookie: session_id=...")
     if not raw_token:
         cookie_header = request.headers.get("cookie") or request.headers.get("Cookie")
         if cookie_header:
@@ -25,7 +23,6 @@ def extract_session_id(request: Request) -> Optional[str]:
                     raw_token = part
                     break
 
-    # 3. Из заголовка Authorization (например: "Bearer <token>" или просто "<token>")
     if not raw_token:
         auth_header = request.headers.get("authorization") or request.headers.get("Authorization")
         if auth_header:
@@ -35,7 +32,6 @@ def extract_session_id(request: Request) -> Optional[str]:
             else:
                 raw_token = auth_str
 
-    # 4. Из кастомных заголовков
     if not raw_token:
         for h in ["session_id", "session-id", "x-session-id", "token", "x-token"]:
             val = request.headers.get(h)
@@ -43,7 +39,6 @@ def extract_session_id(request: Request) -> Optional[str]:
                 raw_token = val
                 break
 
-    # 5. Из query параметров
     if not raw_token:
         raw_token = request.query_params.get("session_id") or request.query_params.get("token")
 
@@ -74,7 +69,6 @@ async def get_current_user_required(
     return current_user_id
 
 
-# Алиас для обратной совместимости
 async def get_current_user_id(
     current_user_id: int = Depends(get_current_user_required),
 ) -> int:
