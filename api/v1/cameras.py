@@ -1,24 +1,49 @@
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from core.auth import get_current_user_optional, get_current_user_required
+from core.feed_session import (
+    FEED_BATCH_SIZE,
+    build_feed_storage_key,
+    load_feed_batch,
+    save_feed_batch,
+    validate_or_create_session_id,
+)
+from core.minio_client import upload_bytes_to_minio
 from db.session import get_db
 from models.camera import Camera
 from models.like import CameraLike
-from schemas.camera import CameraPublishRequest, CameraResponse, LikeToggleRequest
+from schemas.camera import (
+    CameraPublishRequest,
+    CameraResponse,
+    FeedBatchItem,
+    FeedBatchResponse,
+    LikeToggleRequest,
+    PaginatedCamerasResponse,
+)
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 UPLOAD_DIR = BASE_DIR / "static" / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter(prefix="/cameras", tags=["cameras"])
+
+
+def _normalize_media_url(url: Optional[str]) -> Optional[str]:
+    if not url:
+        return url
+    for prefix in ("http://localhost:9000", "http://127.0.0.1:9000", "http://minio:9000"):
+        if url.startswith(prefix):
+            return url[len(prefix):]
+    return url
 
 
 def to_camera_response(camera: Camera, current_user_id: Optional[int] = None) -> CameraResponse:
@@ -44,8 +69,8 @@ def to_camera_response(camera: Camera, current_user_id: Optional[int] = None) ->
         model_name=camera.model_name,
         description=camera.description,
         status=camera.status,
-        image_url=camera.image_url,
-        video_url=camera.video_url,
+        image_url=_normalize_media_url(camera.image_url),
+        video_url=_normalize_media_url(camera.video_url),
         power=camera.power,
         resolution=camera.resolution,
         created_at=camera.created_at,
@@ -57,25 +82,131 @@ def to_camera_response(camera: Camera, current_user_id: Optional[int] = None) ->
     )
 
 
-@router.get("", response_model=List[CameraResponse])
-@router.get("/", response_model=List[CameraResponse], include_in_schema=False)
+@router.get("", response_model=PaginatedCamerasResponse)
+@router.get("/", response_model=PaginatedCamerasResponse, include_in_schema=False)
 async def get_cameras_api(
     power_max: Optional[float] = Query(None, description="Фильтрация по максимальной мощности"),
+    page: int = Query(1, ge=1, description="Номер страницы каталога"),
+    limit: int = Query(12, ge=1, le=100, description="Количество карточек на странице"),
     db: AsyncSession = Depends(get_db),
     current_user_id: Optional[int] = Depends(get_current_user_optional),
 ):
+    conditions = [Camera.status == "published"]
+    if power_max is not None:
+        conditions.append(Camera.power <= power_max)
+
+    t0 = time.perf_counter()
+    count_stmt = select(func.count(Camera.id)).where(*conditions)
+    total = int((await db.execute(count_stmt)).scalar_one() or 0)
+
+    offset = (page - 1) * limit
     stmt = (
         select(Camera)
         .options(selectinload(Camera.likes))
-        .where(Camera.status == "published")
-        .order_by(Camera.id.asc())
+        .where(*conditions)
+        .order_by(Camera.power.asc(), Camera.id.asc())
+        .offset(offset)
+        .limit(limit)
     )
-    if power_max is not None:
-        stmt = stmt.where(Camera.power <= power_max)
 
     result = await db.execute(stmt)
     cameras = result.scalars().all()
-    return [to_camera_response(c, current_user_id) for c in cameras]
+    query_ms = round((time.perf_counter() - t0) * 1000.0, 3)
+
+    return PaginatedCamerasResponse(
+        total=total,
+        page=page,
+        limit=limit,
+        query_ms=query_ms,
+        data=[to_camera_response(c, current_user_id) for c in cameras],
+    )
+
+
+@router.get("/feed/batch", response_model=FeedBatchResponse)
+async def get_camera_feed_batch_api(
+    session_id: Optional[str] = Query(None, description="Идентификатор сессии ленты"),
+    refresh: bool = Query(False, description="Сформировать следующую порцию из 100 карточек"),
+    db: AsyncSession = Depends(get_db),
+    current_user_id: Optional[int] = Depends(get_current_user_optional),
+):
+    try:
+        resolved_session_id = validate_or_create_session_id(session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    storage_key = build_feed_storage_key(resolved_session_id, current_user_id)
+
+    try:
+        batch = await load_feed_batch(storage_key)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Redis feed storage is unavailable",
+        )
+
+    if batch is None or refresh:
+        batch_number = int(batch["batch_number"]) + 1 if batch else 1
+        first_position = int(batch["first_position"]) + len(batch["ids"]) if batch else 1
+
+        random_ids_stmt = (
+            select(Camera.id)
+            .where(Camera.status == "published")
+            .order_by(func.random())
+            .limit(FEED_BATCH_SIZE)
+        )
+        ids = list((await db.execute(random_ids_stmt)).scalars().all())
+        if not ids:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No published cameras")
+
+        try:
+            batch = await save_feed_batch(
+                storage_key=storage_key,
+                session_id=resolved_session_id,
+                batch_number=batch_number,
+                first_position=first_position,
+                ids=ids,
+            )
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Failed to save feed batch in Redis",
+            )
+
+    ids_list = [int(i) for i in batch["ids"]]
+    if not ids_list:
+        return FeedBatchResponse(
+            session_id=batch["session_id"],
+            batch_number=int(batch["batch_number"]),
+            first_position=int(batch["first_position"]),
+            items=[],
+        )
+
+    cams_stmt = (
+        select(Camera)
+        .options(selectinload(Camera.likes))
+        .where(Camera.id.in_(ids_list), Camera.status == "published")
+    )
+    cams = (await db.execute(cams_stmt)).scalars().all()
+    by_id = {c.id: c for c in cams}
+
+    items = []
+    first_pos = int(batch["first_position"])
+    for idx, cam_id in enumerate(ids_list):
+        cam = by_id.get(cam_id)
+        if cam is not None:
+            items.append(
+                FeedBatchItem(
+                    camera=to_camera_response(cam, current_user_id),
+                    position=first_pos + idx,
+                )
+            )
+
+    return FeedBatchResponse(
+        session_id=batch["session_id"],
+        batch_number=int(batch["batch_number"]),
+        first_position=first_pos,
+        items=items,
+    )
 
 
 @router.get("/feed", response_model=CameraResponse)
@@ -170,21 +301,35 @@ async def create_camera_api(
     if image_file and image_file.filename:
         ext = Path(image_file.filename).suffix.lower() or ".jpg"
         img_name = f"camera_{uuid.uuid4().hex[:10]}{ext}"
-        img_path = UPLOAD_DIR / img_name
         content = await image_file.read()
-        with open(img_path, "wb") as f:
-            f.write(content)
-        saved_image_url = f"/static/uploads/{img_name}"
+        try:
+            saved_image_url = upload_bytes_to_minio(
+                img_name,
+                content,
+                content_type=image_file.content_type or "image/jpeg",
+            )
+        except Exception:
+            img_path = UPLOAD_DIR / img_name
+            with open(img_path, "wb") as f:
+                f.write(content)
+            saved_image_url = f"/static/uploads/{img_name}"
 
     saved_video_url = "/static/video/default_video.mp4"
     if video_file and video_file.filename:
         ext = Path(video_file.filename).suffix.lower() or ".mp4"
         vid_name = f"video_{uuid.uuid4().hex[:10]}{ext}"
-        vid_path = UPLOAD_DIR / vid_name
         content = await video_file.read()
-        with open(vid_path, "wb") as f:
-            f.write(content)
-        saved_video_url = f"/static/uploads/{vid_name}"
+        try:
+            saved_video_url = upload_bytes_to_minio(
+                vid_name,
+                content,
+                content_type=video_file.content_type or "video/mp4",
+            )
+        except Exception:
+            vid_path = UPLOAD_DIR / vid_name
+            with open(vid_path, "wb") as f:
+                f.write(content)
+            saved_video_url = f"/static/uploads/{vid_name}"
 
     new_camera = Camera(
         model_name=model_name.strip(),

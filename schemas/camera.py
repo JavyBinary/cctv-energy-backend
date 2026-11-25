@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -20,6 +20,26 @@ class CameraResponse(BaseModel):
     likes_count: int = 0
     is_creator: int = 0
     is_liked: int = 0
+
+
+class PaginatedCamerasResponse(BaseModel):
+    total: int
+    page: int
+    limit: int
+    query_ms: float = 0.0
+    data: List[CameraResponse]
+
+
+class FeedBatchItem(BaseModel):
+    camera: CameraResponse
+    position: int
+
+
+class FeedBatchResponse(BaseModel):
+    session_id: str
+    batch_number: int
+    first_position: int
+    items: List[FeedBatchItem]
 
 
 class CameraPublishRequest(BaseModel):

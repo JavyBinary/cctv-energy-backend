@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select, text
 
 from db.session import async_session_maker
+from core.minio_client import ensure_minio_media_seeded
 from models.camera import Camera
 from models.like import CameraLike
 from models.user import User
@@ -146,4 +147,5 @@ async def seed_db():
 
 if __name__ == "__main__":
     asyncio.run(seed_db())
-    print("Database seeding completed successfully.")
+    ensure_minio_media_seeded()
+    print("Database seeding and MinIO sync completed successfully.")

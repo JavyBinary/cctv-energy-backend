@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from api.handlers import router as cameras_router
 from api.v1 import api_cameras_router, api_users_router
+from core.minio_client import ensure_minio_media_seeded
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -21,6 +22,11 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 app.include_router(cameras_router, include_in_schema=False)
 app.include_router(api_cameras_router, prefix="/api")
 app.include_router(api_users_router, prefix="/api")
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    ensure_minio_media_seeded()
 
 
 @app.get("/", include_in_schema=False)
