@@ -1,35 +1,19 @@
-# Бэкенд: Расчет энергопотребления видеонаблюдения (Доп. задание: Индексы в БД)
+# CCTV Energy Backend — Доп 2 (Tauri + CLIP)
 
-Ветка: `indexes` (репозиторий `cctv-energy-backend`).
+Автономная папка бэкенда для ветки **`tauri`** в репозитории `cctv-energy-backend`.
 
-## Реализовано
-1. **Составной индекс PostgreSQL** (`alembic/versions/a8c4e91f2b30_add_cameras_status_power_id_index.py`):
-   `idx_cameras_status_power_id ON cameras (status, power, id)` — покрывает фильтрацию плитки по мощности и сортировку.
-2. **Генерация 100 000 записей** (`db/seed_bulk.py`):
-   Вставка одним SQL-запросом `generate_series`, очистка флагом `--clean`.
-3. **Пагинация каталога** (`GET /api/cameras?power_max=&page=1&limit=12`):
-   Ответ `{ total, page, limit, data }`.
-4. **Лента в Redis** (`GET /api/cameras/feed/batch?session_id=&refresh=false`):
-   Формирует и кэширует в Redis (`cameras:feed:<session_id>`, TTL 30 мин) 100 случайных неповторяющихся опубликованных камер со сквозными порядковыми номерами (`1..100`, `101..200`, ...).
+## Изменения для нативного приложения Tauri + ИИ-поиска (CLIP / SigLIP)
+- Добавлена миграция Alembic `b2d9e41c7a10_add_description_en_to_cameras.py` (колонка `description_en VARCHAR(100)`).
+- В `CameraResponse` (`GET /api/cameras`, `GET /api/cameras/feed`) возвращается поле `description_en` на английском языке (50–100 символов) для вычисления эмбеддингов в `transformers.js`.
+- В `main.py` подключён `CORSMiddleware` для работы WebView Tauri по IP локальной сети.
+- При старте и в `db/seed.py` выполняется автоматическая загрузка медиафайлов (`camera_1..4.jpg`, `video_1..4.mp4`) в MinIO.
 
-## Команды запуска
+## Запуск стенда
 ```bash
-make infra-up       # Поднять Postgres, Redis, MinIO, Adminer
-make migrate-up     # Применить миграции (включая индекс)
-make seed           # Базовые пользователи и 6 камер
-make seed-bulk      # Добавить 100 000 камер
-make run            # Запустить FastAPI на :8000
+docker compose up -d postgres redis minio adminer
+alembic upgrade head
+python3 -m db.seed
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-## Проверка индекса (`EXPLAIN ANALYZE`) и Redis
-```sql
-ANALYZE cameras;
-EXPLAIN ANALYZE SELECT * FROM cameras WHERE status = 'published' AND power <= 4.0 ORDER BY power, id LIMIT 12 OFFSET 2000;
-DROP INDEX idx_cameras_status_power_id;
-EXPLAIN ANALYZE SELECT * FROM cameras WHERE status = 'published' AND power <= 4.0 ORDER BY power, id LIMIT 12 OFFSET 2000;
-CREATE INDEX idx_cameras_status_power_id ON cameras (status, power, id);
-```
-```bash
-docker exec -i redis_cache redis-cli --scan --pattern 'cameras:feed:*'
-docker exec -i redis_cache redis-cli GET cameras:feed:<session_id>
-```
+> Важно: указывайте `--host 0.0.0.0`, чтобы собранное приложение Tauri могло подключаться по IP ноутбука в локальной сети (`ipconfig getifaddr en0`), а не только по `localhost`.

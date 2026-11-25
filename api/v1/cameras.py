@@ -68,6 +68,7 @@ def to_camera_response(camera: Camera, current_user_id: Optional[int] = None) ->
         id=camera.id,
         model_name=camera.model_name,
         description=camera.description,
+        description_en=camera.description_en or "",
         status=camera.status,
         image_url=_normalize_media_url(camera.image_url),
         video_url=_normalize_media_url(camera.video_url),

@@ -9,6 +9,7 @@ class CameraResponse(BaseModel):
     id: int
     model_name: str
     description: Optional[str] = None
+    description_en: str = ""
     status: str
     image_url: Optional[str] = None
     video_url: Optional[str] = None

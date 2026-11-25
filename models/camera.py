@@ -10,6 +10,7 @@ class Camera(Base):
     id = Column(Integer, primary_key=True, index=True)
     model_name = Column(String(100), nullable=False)
     description = Column(String(500), nullable=True)
+    description_en = Column(String(100), nullable=False, default="", server_default="")
     status = Column(String(20), nullable=False, default="draft")
     image_url = Column(String(255), nullable=True)
     video_url = Column(String(255), nullable=True)

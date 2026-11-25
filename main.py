@@ -1,5 +1,6 @@
 from pathlib import Path
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -12,10 +13,18 @@ BASE_DIR = Path(__file__).resolve().parent
 
 app = FastAPI(
     title="Сервис расчета энергопотребления систем видеонаблюдения",
-    description="REST API для управления моделями камер (ЛР3-ЛР4) и веб-интерфейс (ЛР1-ЛР2)",
+    description="REST API для управления моделями камер (ЛР3-ЛР4, Индексы, Tauri)",
     version="1.0.0",
     docs_url="/docs",
     openapi_url="/openapi.json",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
